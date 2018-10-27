@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="theme-color" content="#025928"> <!-- Border color for phone browsers in particular -->
+        <title>Auto refresh image without flicker</title>
+        <!-- Can be used like this:
+             https://quanto.ga/qa/auto_refresh_image.html?refresh_ms=250&img_url=https://en.bitcoin.it/w/images/en/2/29/BC_Logo_.png
+
+             Adapted from ideas seen here: https://stackoverflow.com/questions/5438612/how-to-display-a-constantly-changing-image-file-in-a-browser-without-refresh-fli
+        -->
+
+        <!-- Some crappy browsers don't support the URLSearchParams object, so we include a polyfill for this:
+             https://github.com/WebReflection/url-search-params -->
+        <script src="js/url-search-params.js"></script>
+        <script>
+         var page_visible_p = true;
+         var url_params = new URLSearchParams(window.location.search);
+         var img_url = url_params.get('img_url');
+         var refresh_interval = url_params.get('refresh_ms');
+         var img;
+
+
+         function refresh(){
+             if(page_visible_p){
+                 // TOOD: 2018-08: Seems impossible to do anything besides this dumb cache-bust. That's pretty amazing. HTTP-304 responses would be great.
+                 img.src = img_url + "?" + new Date().getTime();
+             }
+         }
+
+
+         function init(){
+             var canvas = document.getElementById("canvas");
+             var context = canvas.getContext("2d");
+             img = new Image();
+             img.onload = function(){
+                 //console.log("img.onload");
+                 canvas.setAttribute("width", img.width);
+                 canvas.setAttribute("height", img.height);
+                 context.drawImage(this, 0, 0);
+                 setTimeout("refresh()", refresh_interval); // TODO: Decrease wait time by time spent loading.
+             };
+             img.onerror = function(){
+                 setTimeout("refresh()", 1000);
+             };
+             refresh();
+         }
+
+
+         function handleVisibilityChange(){
+             if(document.hidden){
+                 //console.log("not visible!");
+                 page_visible_p = false;
+             }else{
+                 //console.log("visible!");
+                 page_visible_p = true;
+                 refresh();
+             }
+         }
+
+
+         document.addEventListener("visibilitychange", handleVisibilityChange, false);
+        </script>
+    </head>
+
+
+    <body onload="javascript:init();" style="text-align: center;">
+        <canvas id="canvas" style="max-width: 100%;"></canvas>
+    </body>
+</html>
